@@ -46,13 +46,16 @@ def get_tts_model():
     if tts_model is None:
         logger.info("Loading IndexTTS model...")
         try:
-            # Import actual IndexTTS library here
-            # from indextts.infer_v2 import IndexTTS2
-            # tts_model = IndexTTS2(
-            #     cfg_path=f"{MODEL_PATH}/config.yaml",
-            #     model_dir=MODEL_PATH,
-            #     use_fp16=USE_FP16
-            # )
+            import sys
+            sys.path.insert(0, "/app/index-tts")
+
+            from indextts.infer_v2 import IndexTTS2
+
+            tts_model = IndexTTS2(
+                cfg_path=f"{MODEL_PATH}/config.yaml",
+                model_dir=MODEL_PATH,
+                use_fp16=USE_FP16
+            )
             logger.info("IndexTTS model loaded successfully")
         except Exception as e:
             logger.error(f"Model loading failed: {e}")
@@ -117,18 +120,14 @@ async def generate_speech(request: TTSRequest):
         output_path = os.path.join(OUTPUT_PATH, output_filename)
         
         # Call TTS model to generate speech
-        # Implement actual IndexTTS API call here
-        # model.infer(
-        #     spk_audio_prompt=request.voice_prompt,
-        #     text=request.text,
-        #     output_path=output_path,
-        #     emotion=request.emotion,
-        #     speed=request.speed,
-        #     pitch=request.pitch
-        # )
-        
-        # Temporary: create empty file for testing
-        Path(output_path).touch()
+        model.infer(
+            spk_audio_prompt=request.voice_prompt,
+            text=request.text,
+            output_path=output_path,
+            emotion=request.emotion,
+            speed=request.speed,
+            pitch=request.pitch
+        )
         
         logger.info(f"Speech generated successfully: {output_filename}")
         
