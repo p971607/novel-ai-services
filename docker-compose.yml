@@ -1,0 +1,87 @@
+version: '3.8'
+
+services:
+  index-tts:
+    build:
+      context: ./index-tts
+      dockerfile: Dockerfile
+    image: p971607/index-tts:latest
+    container_name: index-tts
+    
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    
+    ports:
+      - "8000:8000"
+    
+    volumes:
+      - ./data/checkpoints:/app/checkpoints:ro
+      - ./data/output:/app/output
+      - ./data/examples:/app/examples:ro
+    
+    environment:
+      - USE_FP16=true
+      - MODEL_PATH=/app/checkpoints
+      - OUTPUT_PATH=/app/output
+      - MAX_WORKERS=4
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    
+    restart: unless-stopped
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  comfyui:
+    build:
+      context: ./comfyui
+      dockerfile: Dockerfile
+    image: p971607/comfyui:latest
+    container_name: comfyui
+    
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    
+    ports:
+      - "8001:8001"
+    
+    volumes:
+      - ./data/models:/app/models
+      - ./data/comfyui-output:/app/output
+      - ./data/comfyui-input:/app/input
+    
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    
+    restart: unless-stopped
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  checkpoints:
+  output:
+  examples:
+  models:
+  comfyui-output:
+  comfyui-input:
+
