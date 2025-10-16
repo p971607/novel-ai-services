@@ -60,26 +60,47 @@ docker-compose down
 
 ### Deploy to Xiangongyun (仙宫云)
 
-1. **Create IndexTTS Instance**
-   - Image: `p971607/index-tts:latest`
-   - GPU: RTX 3090 or better
-   - Port: 8000
-   - Environment Variables:
-     - `MODEL_PATH=/app/checkpoints`
-     - `OUTPUT_PATH=/app/output`
-     - `USE_FP16=true`
-     - `MAX_WORKERS=4`
+#### Step 1: Download IndexTTS-2 Model
 
-2. **Create ComfyUI Instance**
-   - Image: `p971607/comfyui:latest`
-   - GPU: RTX 3090 or better
-   - Port: 8001
+Before deploying, you need to download the IndexTTS-2 model:
 
-3. **Configure Auto-scaling**
-   - Min instances: 1
-   - Max instances: 5
-   - Scale up threshold: CPU > 70% or GPU > 80%
-   - Scale down threshold: CPU < 30% and GPU < 30%
+```bash
+# Install huggingface-cli
+pip install "huggingface-hub[cli]"
+
+# Download model (about 2-3 GB)
+hf download IndexTeam/IndexTTS-2 --local-dir=./checkpoints
+
+# Or use ModelScope (faster in China)
+pip install modelscope
+modelscope download --model IndexTeam/IndexTTS-2 --local_dir ./checkpoints
+```
+
+#### Step 2: Upload Model to Xiangongyun
+
+1. Create a persistent volume in Xiangongyun
+2. Upload the `checkpoints` directory to the volume
+
+#### Step 3: Create IndexTTS Instance
+
+1. **Image**: `p971607/index-tts:latest`
+2. **GPU**: RTX 3090 or better (8GB+ VRAM)
+3. **Port**: 8000
+4. **Volume Mount**:
+   - Mount your volume to `/app/checkpoints` (read-only)
+   - Mount another volume to `/app/output` (read-write)
+5. **Environment Variables**:
+   - `MODEL_PATH=/app/checkpoints`
+   - `OUTPUT_PATH=/app/output`
+   - `USE_FP16=true`
+   - `MAX_WORKERS=4`
+
+#### Step 4: Configure Auto-scaling (Optional)
+
+- Min instances: 1
+- Max instances: 5
+- Scale up threshold: CPU > 70% or GPU > 80%
+- Scale down threshold: CPU < 30% and GPU < 30%
 
 ### Deploy Nitro Proxy to Vercel
 

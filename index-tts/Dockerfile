@@ -1,5 +1,7 @@
 # IndexTTS Dockerfile
-FROM nvidia/cuda:12.8.0-cudnn9-runtime-ubuntu22.04
+# This image contains IndexTTS code and dependencies, but NOT the model files
+# Model files should be mounted as a volume at runtime
+FROM nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
 
 # Set working directory
 WORKDIR /app
@@ -31,16 +33,11 @@ RUN pip3 install --no-cache-dir uv
 WORKDIR /app/index-tts
 RUN uv sync --all-extras --default-index "https://mirrors.aliyun.com/pypi/simple"
 
-# Download IndexTTS-2 model (using HuggingFace mirror)
-ENV HF_ENDPOINT="https://hf-mirror.com"
-RUN uv tool install "huggingface-hub[cli,hf_xet]" && \
-    ~/.local/bin/hf download IndexTeam/IndexTTS-2 --local-dir=checkpoints
-
 # Copy our API wrapper
 COPY tts_api.py /app/tts_api.py
 
-# Create output directory
-RUN mkdir -p /app/output
+# Create necessary directories
+RUN mkdir -p /app/checkpoints /app/output /app/examples
 
 # Set working directory back to /app
 WORKDIR /app
@@ -52,6 +49,12 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# Start command (using uv to run in the correct environment)
+# Environment variables (can be overridden at runtime)
+ENV MODEL_PATH=/app/checkpoints
+ENV OUTPUT_PATH=/app/output
+ENV USE_FP16=true
+ENV MAX_WORKERS=4
+
+# Start command
 CMD ["python3", "tts_api.py"]
 
